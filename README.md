@@ -1,1 +1,1 @@
-# sentinelpr
+# SentinelPR

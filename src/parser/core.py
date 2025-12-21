@@ -1,8 +1,4 @@
-# src/parser/core.py
-
-
-
-# Imports
+# src.parser.core.py
 from tree_sitter import Language, Parser
 import tree_sitter_python as tspython
 import tree_sitter_java as tsjava

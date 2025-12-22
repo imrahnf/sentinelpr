@@ -17,25 +17,22 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Cache Sentinel State
-        uses: actions/cache@v4 # Use the latest v4
+      - name: Cache Sentinel state
+        uses: actions/cache@v4
         with:
           path: |
             .sentinel/db
             .sentinel/hashes.json
-          # This key stays the same for every run on this branch
-          key: sentinelpr-${{ runner.os }}-${{ github.ref_name }}-${{ hashFiles('src/**') }}
-          # If the exact key isn't found, grab the most recent one from this branch
+          key: sentinelpr-${{ github.repository }}-${{ github.ref_name }}-v1
           restore-keys: |
-            sentinelpr-${{ runner.os }}-${{ github.ref_name }}-
-            sentinelpr-${{ runner.os }}-main-
+            sentinelpr-${{ github.repository }}-${{ github.ref_name }}-
+            sentinelpr-${{ github.repository }}-
+            sentinelpr-
 
       - name: Generate Diff File
-        # This creates the 'pr.diff' file that your Python script expects
         run: git diff origin/${{ github.base_ref }}...HEAD > pr.diff
 
       - name: Run SentinelPR Action
-        # Points to the current repo (the dot) where action.yml lives
         uses: ./ 
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}

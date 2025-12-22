@@ -87,7 +87,7 @@ jobs:
         run: git diff origin/${{ github.base_ref }}...HEAD > pr.diff
 
       - name: Run SentinelPR
-        uses: imrahnf/sentinelpr@v1
+        uses: imrahnf/sentinelpr@v1.0.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}

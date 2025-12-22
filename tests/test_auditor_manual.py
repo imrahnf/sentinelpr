@@ -21,8 +21,6 @@ def test_auditor():
     }
     
     fake_context = [] # No RAG
-
-    print("🤖 Asking Gemini to review...")
     reviews = auditor.analyze(fake_diff, fake_symbol, fake_context)
     
     print("\n--- AI REVIEWS ---")

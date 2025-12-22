@@ -1,19 +1,25 @@
-# src/main.py
 import os
 import sys
+import argparse
+import traceback
+import json
 
-# --- Imports ---
+# --- Core Modules ---
 from src.indexer.scanner import Scanner
 from src.parser.core import ParserEngine
 from src.parser.extractor import SymbolExtractor
 from src.indexer.hasher import calculate_hash
-
-# Milestone 2 Imports (The New Brain)
 from src.indexer.persistence import verify_db_integrity, reset_db
 from src.storage.vector_store import VectorStore
 from src.ai.embedder import Embedder
 
-def main():
+# --- Audit Modules ---
+from src.git.diff_parser import DiffParser
+from src.orchestrator.mapper import Mapper
+from src.orchestrator.retriever import ContextRetriever
+from src.ai.auditor import Auditor
+
+def run_indexer():
     print("---|| SentinelPR Indexer Started ||---")
 
     if not verify_db_integrity(".sentinel/db"):
@@ -57,25 +63,22 @@ def main():
 
             # If file is valid but empty, it is still processed
             if not symbols:
-                new_hash = calculate_hash(file_path)
-                scanner.update_state(file_path, new_hash)
+                scanner.update_state(file_path, calculate_hash(file_path))
                 continue
             
-            # symbols is a list of Symbols
+            # Snippets to directly map content
             snippets = [s.content for s in symbols]
-
-            print(f"Generating embeddings for {file_path}")
             vectors = embedder.embed_batch(snippets)
 
             # Prepare metadata
             ids = []
             metadata = []
-
             for sym, vec in zip(symbols, vectors):
                 uid = f"{sym.file_path}::{sym.name}"
                 ids.append(uid)
 
                 metadata.append({
+                    "id": uid,
                     "file_path": sym.file_path,
                     "symbol_name": sym.name,
                     "type": sym.type,
@@ -85,15 +88,75 @@ def main():
                 })
 
             store.upsert(ids=ids, vectors=vectors, metadata=metadata)
-            print(f"Indexed {len(symbols)} symbols for {file_path}")
-            
-            new_hash = calculate_hash(file_path)
-            scanner.update_state(file_path, new_hash)
+            scanner.update_state(file_path, calculate_hash(file_path))
+            print(f"Indexed {file_path}")
 
         except Exception as e:
             print(f"Failed to index {file_path}: {e}")
             continue # Move onto the next file
     print("---|| SentinelPR Indexer Complete ||---")
+
+def run_auditor(diff_path: str):
+    print("---|| SentinelPR Auditor Started ||---")
+    
+    try:
+        # Read the Diff
+        with open(diff_path, 'r') as f:
+            diff_text = f.read()
+
+        # nit Components
+        store = VectorStore()
+        embedder = Embedder()
+        parser = DiffParser()
+        mapper = Mapper(store)
+        retriever = ContextRetriever(store, embedder)
+        auditor = Auditor()
+
+        # Parse & Map
+        print("Parsing Diff...")
+        hunks = parser.parse(diff_text)
+        affected_symbols = mapper.map_diffs_to_symbols(hunks)
+
+        if not affected_symbols:
+            print("No symbols affected by this change.")
+            return
+
+        print(f"Found {len(affected_symbols)} affected symbols.")
+
+        # udit Loop
+        all_reviews = []
+        for sym in affected_symbols:
+            print(f"Auditing {sym['symbol_name']}...")
+            
+            # RAG
+            context = retriever.retrieve_context(sym)
+            
+            # AI Generate Review
+            reviews = auditor.analyze(diff_text, sym, context)
+            all_reviews.extend(reviews)
+
+        # Output Results
+        if all_reviews:
+            print("\nDETECTED ISSUES:")
+            print(json.dumps(all_reviews, indent=2))
+        else:
+            print("No issues found.")
+
+    except Exception as e:
+        print(f"Audit Failure: {e}")
+        traceback.print_exc()
+        sys.exit(0)
+
+def main():
+    parser = argparse.ArgumentParser(description="SentinelPR: AI Code Auditor")
+    parser.add_argument("--diff", help="Path to a git diff file to audit")
+    
+    args = parser.parse_args()
+    
+    if args.diff:
+        run_auditor(args.diff)
+    else:
+        run_indexer()
 
 if __name__ == "__main__":
     main()

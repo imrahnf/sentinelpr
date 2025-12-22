@@ -18,6 +18,10 @@ You will be provided with:
    - Security (SQL Injection, XSS, Hardcoded Secrets)
    - Performance (O(N^2) loops, unnecessary database calls)
    - Logic (Off-by-one errors, Null checks)
+4. **CRITICAL: LINE NUMBERS**
+   - You must provide the ABSOLUTE line number from the source file.
+   - Do NOT use relative line numbers from the diff.
+   - Only comment on lines listed in the "VALID LINE NUMBERS" section below.
 
 ### OUTPUT FORMAT
 You must output a SINGLE JSON object. Do not write markdown. Do not write explanations outside the JSON.
@@ -25,7 +29,7 @@ The JSON must follow this schema:
 {
     "reviews": [
         {
-            "line": <int>,
+            "line": <int: ABSOLUTE line number>,
             "issue": "<string: concise description>",
             "severity": "<string: HIGH|MEDIUM|LOW>",
             "suggestion": "<string: code fix or specific advice>"
@@ -45,6 +49,9 @@ AUDITOR_USER_TEMPLATE = """
 
 ### GIT DIFF (The Change)
 {diff_text}
+
+### VALID LINE NUMBERS (Only comment on these lines)
+{valid_lines}
 
 Analyze the Diff. Does it introduce bugs or violate patterns found in Context?
 """

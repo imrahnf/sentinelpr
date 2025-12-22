@@ -128,11 +128,24 @@ def run_auditor(diff_path: str, repo: str = None, pr: int = None, token: str = N
         for sym in affected_symbols:
             print(f"Auditing {sym['symbol_name']}...")
             
+            # Calculate valid lines for this symbol (Intersection of Hunk & Symbol)
+            symbol_range = range(int(sym['start_line']), int(sym['end_line']) + 1)
+            valid_lines = []
+            for h in hunks:
+                if h.file_path == sym['file_path']:
+                    valid_lines.extend([line for line in h.changed_lines if line in symbol_range])
+            
+            valid_lines = sorted(list(set(valid_lines)))
+
+            if not valid_lines:
+                print(f"Skipping {sym['symbol_name']} - No changed lines within symbol range.")
+                continue
+
             # RAG
             context = retriever.retrieve_context(sym)
             
             # AI Generate Review
-            reviews = auditor.analyze(diff_text, sym, context)
+            reviews = auditor.analyze(diff_text, sym, context, valid_lines)
             all_reviews.extend(reviews)
 
         # --- NEW: VALIDATION & POSTING ---

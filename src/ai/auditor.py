@@ -13,7 +13,7 @@ class Auditor:
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel('gemini-flash-latest')
 
-    def analyze(self, diff_text: str, affected_symbol: Dict, context_snippets: List[Dict]) -> List[Dict]:
+    def analyze(self, diff_text: str, affected_symbol: Dict, context_snippets: List[Dict], valid_lines: List[int]) -> List[Dict]:
         # repare the Context String (Flatten the RAG results)
         context_str = "\n".join([
             f"--- Snippet from {c['file_path']} ---\n{c['snippet']}" 
@@ -24,7 +24,8 @@ class Auditor:
         prompt = AUDITOR_USER_TEMPLATE.format(
             context_str=context_str if context_str else "No relevant context found.",
             symbol_code=affected_symbol.get('snippet', 'Code not found'),
-            diff_text=diff_text
+            diff_text=diff_text,
+            valid_lines=str(valid_lines)
         )
 
         # Call Gemini
@@ -40,11 +41,20 @@ class Auditor:
             result = json.loads(response.text)
             reviews = result.get("reviews", [])
             
-            # Add file_path to each review
+            # Filter and Enrich Reviews
+            valid_reviews = []
             for review in reviews:
+                line = review.get('line')
+                
+                # Hunk Validation: Ensure line is in the valid_lines list
+                if line not in valid_lines:
+                    print(f"Skipping review on invalid line {line}. Valid lines: {valid_lines}")
+                    continue
+
                 review['file_path'] = affected_symbol['file_path']
+                valid_reviews.append(review)
             
-            return reviews
+            return valid_reviews
 
         except json.JSONDecodeError:
             print("Auditor produced invalid JSON.")

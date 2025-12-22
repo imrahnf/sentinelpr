@@ -93,6 +93,42 @@ jobs:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
 ```
 
+### Local Development/Testing
+
+If you're testing SentinelPR locally (e.g., in another repo) before publishing, copy the `action.yml`, `requirements.txt`, and `src/` directory to your test repository's root, then use this workflow:
+
+```yaml
+name: SentinelPR Audit (Local Test)
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required for Diff analysis
+
+      - name: Generate Diff
+        run: git diff origin/${{ github.base_ref }}...HEAD > pr.diff
+
+      - name: Run SentinelPR (Local)
+        uses: ./  # Assumes action.yml is in repo root
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+```
+
+**Note:** Ensure `action.yml` and dependencies are committed to your test repo. For production use, replace `uses: ./` with the published action path once available.
+
 ---
 
 ## Configuration

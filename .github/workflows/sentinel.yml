@@ -1,11 +1,11 @@
-name: SentinelPR
+name: SentinelPR Audit
 
 on:
   pull_request:
     types: [opened, synchronize]
 
 jobs:
-  sentinel-audit:
+  audit:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -17,7 +17,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Cache Sentinel state
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Cache Sentinel State
         uses: actions/cache@v4
         with:
           path: |
@@ -26,14 +32,13 @@ jobs:
           key: sentinelpr-${{ github.repository }}-${{ github.ref_name }}-v1
           restore-keys: |
             sentinelpr-${{ github.repository }}-${{ github.ref_name }}-
-            sentinelpr-${{ github.repository }}-
             sentinelpr-
 
-      - name: Generate Diff File
+      - name: Generate Diff
         run: git diff origin/${{ github.base_ref }}...HEAD > pr.diff
 
-      - name: Run SentinelPR Action
-        uses: ./ 
+      - name: Run SentinelPR
+        uses: imrahnf/sentinelpr@v1.0.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}

@@ -1,27 +1,35 @@
-name: SentinelPR Audit
+name: SentinelPR
 
 on:
   pull_request:
-    branches: [ main ]
+    types: [opened, synchronize]
 
 jobs:
-  audit:
+  sentinel-audit: # This was likely missing or misaligned
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: write
-
-steps:
+    
+    steps: # Line 14: Must be indented under the job ID
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Generate Diff
-        run: git diff origin/${{ github.base_ref }} HEAD > pr.diff
-
-      - name: Run SentinelPR
-        uses: ./ 
+      - name: Restore Sentinel Cache
+        uses: actions/cache@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          path: .sentinel/db
+          key: sentinel-v1-${{ runner.os }}-${{ hashFiles('**/symbol_map.json') }}
+          restore-keys: |
+            sentinel-v1-${{ runner.os }}-
+
+      - name: Run SentinelPR Auditor
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          # Ensure the exit code is always 0 to fulfill the Fail-Open policy
+          python main.py --index || true
+          python main.py --diff ${{ github.event.pull_request.diff_url }} || true

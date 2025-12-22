@@ -1,47 +1,28 @@
-name: SentinelPR Indexer
+name: SentinelPR Audit
 
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ main ]
 
 jobs:
-  index-codebase:
+  audit:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      pull-requests: write
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
-          cache: 'pip'
+          fetch-depth: 0
 
-      - name: Install Dependencies
-        run: |
-          pip install -r requirements.txt
+      - name: Generate Diff
+        run: git diff origin/${{ github.base_ref }} HEAD > pr.diff
 
-      - name: Restore Sentinel Cache
-        uses: actions/cache@v4
-        id: cache-sentinel
+      - name: Run SentinelPR
+        # THIS IS THE MAGIC LINE:
+        uses: imrahnf/sentinelpr@main 
         with:
-          path: .sentinel
-          # Key includes runner OS and hash of symbol map (or just a version string)
-          # We use a rolling hash so it always tries to restore the latest valid cache
-          key: sentinel-db-${{ runner.os }}-${{ github.run_id }}
-          restore-keys: |
-            sentinel-db-${{ runner.os }}-
-
-      - name: Run Indexer
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        
-        # Ensure the directory exists so cache action doesn't complain if script fails
-        run: |
-          mkdir -p .sentinel
-          python -m src.main
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}

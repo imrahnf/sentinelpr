@@ -1,0 +1,36 @@
+name: 'SentinelPR Code Auditor'
+description: 'AI-powered semantic code review for your Pull Requests.'
+inputs:
+  github_token:
+    description: 'The GitHub Token to post comments'
+    required: true
+  gemini_api_key:
+    description: 'Google Gemini API Key'
+    required: true
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r ${{ github.action_path }}/requirements.txt
+
+    - name: Run Auditor
+      shell: bash
+      run: |
+        # We use github.action_path to ensure it finds YOUR code, 
+        # even when running inside SOMEONE ELSE'S repo.
+        export PYTHONPATH=${{ github.action_path }}
+        python ${{ github.action_path }}/src/main.py \
+          --diff pr.diff \
+          --repo ${{ github.repository }} \
+          --pr ${{ github.event.pull_request.number }} \
+          --token ${{ inputs.github_token }}
+      env:
+        GEMINI_API_KEY: ${{ inputs.gemini_api_key }}

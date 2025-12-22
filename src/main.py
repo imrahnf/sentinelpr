@@ -150,6 +150,9 @@ def run_auditor(diff_path: str):
 def main():
     parser = argparse.ArgumentParser(description="SentinelPR: AI Code Auditor")
     parser.add_argument("--diff", help="Path to a git diff file to audit")
+    parser.add_argument("--repo", help="Full repository name (owner/repo)")
+    parser.add_argument("--pr", type=int, help="Pull request number")
+    parser.add_argument("--token", help="GitHub token")
     
     args = parser.parse_args()
     

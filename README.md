@@ -26,14 +26,29 @@ Most AI reviewers are **Context-Blind**. They see a 5-line diff and guess the in
 SentinelPR operates as a **Fail-Open** CI/CD pipeline component.
 
 ```mermaid
-graph TD
-    A[Pull Request Event] --> B{Incremental Indexer}
-    B -->|Scan & Hash| C[Tree-sitter Parser]
-    C -->|Extract Symbols| D[ChromaDB Vector Store]
-    D -->|Retrieve Context| E[Context Orchestrator]
-    E -->|Diff + Context| F[Gemini 1.5 Flash]
-    F -->|Raw Review| G[Schema Guard Validator]
-    G -->|Valid Lines Only| H[GitHub PR Comments]
+graph LR
+    subgraph Input
+        A[PR Event] --> B[Git Diff]
+    end
+
+    subgraph RAG_Engine
+        B --> C[Indexer]
+        C --> D[Tree-sitter AST]
+        D --> E[(ChromaDB)]
+    end
+
+    subgraph Audit_Logic
+        E --> F[Context Retrieval]
+        F --> G[Gemini 1.5]
+    end
+
+    subgraph Delivery
+        G --> H[Schema Guard]
+        H --> I[PR Comments]
+    end
+
+    style E fill:#f96,stroke:#333
+    style G fill:#4285F4,color:#fff
 ```
 
 1.  **Deterministic Parsing:** Uses `tree-sitter` to parse Python/Java code into a Concrete Syntax Tree, extracting top-level functions and classes.

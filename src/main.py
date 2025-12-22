@@ -23,7 +23,6 @@ from src.validator.schema_guard import SchemaGuard
 
 def run_indexer():
     print("---|| SentinelPR Indexer Started ||---")
-
     if not verify_db_integrity(".sentinel/db"):
         reset_db(".sentinel/db")
 

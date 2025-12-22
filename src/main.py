@@ -21,6 +21,8 @@ from src.ai.auditor import Auditor
 from src.github.commenter import PRCommenter
 from src.validator.schema_guard import SchemaGuard
 
+num = 1/0
+
 def run_indexer():
     print("---|| SentinelPR Indexer Started ||---")
 
@@ -31,7 +33,7 @@ def run_indexer():
         ".py": "python", 
         ".java": "java"
     }
-
+    # TODO: REMOVE HARDCODED PASSWORD "123456"
     # Initialize the components
     scanner = Scanner()
     parser = ParserEngine()
@@ -144,7 +146,7 @@ def run_auditor(diff_path: str, repo: str = None, pr: int = None, token: str = N
 
         # 2. Post or Print
         if token and repo and pr:
-            print(f"🚀 Posting {len(valid_reviews)} reviews to {repo} PR #{pr}...")
+            print(f"Posting {len(valid_reviews)} reviews to {repo} PR #{pr}...")
             commenter = PRCommenter(repo, pr, token)
             commenter.post_comments(valid_reviews)
         else:

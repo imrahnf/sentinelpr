@@ -23,7 +23,7 @@ runs:
       shell: bash
       run: |
         export PYTHONPATH=${{ github.action_path }}
-        # We must create the pr.diff file before this step runs
+        python ${{ github.action_path }}/src/main.py 
         python ${{ github.action_path }}/src/main.py \
           --diff pr.diff \
           --repo ${{ github.repository }} \

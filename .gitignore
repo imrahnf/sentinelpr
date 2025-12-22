@@ -1,3 +1,8 @@
+# Application-specific ignores
+.sentinel/
+/sentinel
+.sentinel
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

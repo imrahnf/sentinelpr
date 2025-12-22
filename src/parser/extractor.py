@@ -19,18 +19,18 @@ class SymbolExtractor:
 
         # Process current node
         if node.type in self.target_types:
+            # Get node's name and slice the source bytes by start and end bytes of the name_node we got
             name_node = node.child_by_field_name("name")
+            name_text = self.source_bytes[name_node.start_byte:name_node.end_byte].decode("utf-8") if name_node else "anonymous"
 
-            # Slice the source bytes by start and end bytes of the name_node we got
-            if name_node:
-                name_text = self.source_bytes[name_node.start_byte:name_node.end_byte].decode("utf-8")
-            else:
-                name_text = "anonymous"
-            
+            # Get the full content of the symbol body
+            symbol_content = self.source_bytes[node.start_byte:node.end_byte].decode("utf-8")
+
             # Create Symbol object and append to symbols
             symbols.append(Symbol(
                 name=name_text, 
                 type=self.target_types[node.type], # Clean map name
+                content=symbol_content,
                 start_line=node.start_point[0] + 1,
                 end_line=node.end_point[0] + 1,
                 file_path=file_path

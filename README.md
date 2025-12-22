@@ -81,53 +81,33 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Required for Diff analysis
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache Sentinel State
+        uses: actions/cache@v4
+        with:
+          path: |
+            .sentinel/db
+            .sentinel/hashes.json
+          key: sentinelpr-${{ github.repository }}-${{ github.ref_name }}-v1
+          restore-keys: |
+            sentinelpr-${{ github.repository }}-${{ github.ref_name }}-
+            sentinelpr-
 
       - name: Generate Diff
         run: git diff origin/${{ github.base_ref }}...HEAD > pr.diff
 
       - name: Run SentinelPR
-        uses: imrahnf/sentinelpr@v1.0.0
+        uses: imrahnf/sentinelpr@v1.1.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
 ```
-
-### Local Development/Testing
-
-If you're testing SentinelPR locally (e.g., in another repo) before publishing, copy the `action.yml`, `requirements.txt`, and `src/` directory to your test repository's root, then use this workflow:
-
-```yaml
-name: SentinelPR Audit (Local Test)
-
-on:
-  pull_request:
-    types: [opened, synchronize]
-
-jobs:
-  audit:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-    
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Required for Diff analysis
-
-      - name: Generate Diff
-        run: git diff origin/${{ github.base_ref }}...HEAD > pr.diff
-
-      - name: Run SentinelPR (Local)
-        uses: ./  # Assumes action.yml is in repo root
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
-```
-
-**Note:** Ensure `action.yml` and dependencies are committed to your test repo. For production use, replace `uses: ./` with the published action path once available.
 
 ---
 

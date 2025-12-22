@@ -38,7 +38,13 @@ class Auditor:
             
             # Parse JSON
             result = json.loads(response.text)
-            return result.get("reviews", [])
+            reviews = result.get("reviews", [])
+            
+            # Add file_path to each review
+            for review in reviews:
+                review['file_path'] = affected_symbol['file_path']
+            
+            return reviews
 
         except json.JSONDecodeError:
             print("Auditor produced invalid JSON.")

@@ -11,7 +11,7 @@ jobs:
       contents: read
       pull-requests: write
 
-    steps:
+steps:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
@@ -21,8 +21,7 @@ jobs:
         run: git diff origin/${{ github.base_ref }} HEAD > pr.diff
 
       - name: Run SentinelPR
-        # THIS IS THE MAGIC LINE:
-        uses: imrahnf/sentinelpr@main 
+        uses: ./ 
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}

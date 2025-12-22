@@ -21,6 +21,21 @@ from src.ai.auditor import Auditor
 from src.github.commenter import PRCommenter
 from src.validator.schema_guard import SchemaGuard
 
+def test_logic():
+    # TODO: remove publicly exposed api key and hardcorded password "123456"
+
+    print("hello world, this is a logic test")
+    print("another line test")
+    """
+    just
+    some
+    comments
+    """
+    
+    num = 1 / 0
+    print(3*2+1)
+    # this is the end
+
 def run_indexer():
     print("---|| SentinelPR Indexer Started ||---")
     if not verify_db_integrity(".sentinel/db"):

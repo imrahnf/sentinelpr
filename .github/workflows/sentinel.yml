@@ -17,6 +17,19 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Cache Sentinel State
+        uses: actions/cache@v4 # Use the latest v4
+        with:
+          path: |
+            .sentinel/db
+            .sentinel/hashes.json
+          # This key stays the same for every run on this branch
+          key: sentinelpr-${{ runner.os }}-${{ github.ref_name }}-${{ hashFiles('src/**') }}
+          # If the exact key isn't found, grab the most recent one from this branch
+          restore-keys: |
+            sentinelpr-${{ runner.os }}-${{ github.ref_name }}-
+            sentinelpr-${{ runner.os }}-main-
+
       - name: Generate Diff File
         # This creates the 'pr.diff' file that your Python script expects
         run: git diff origin/${{ github.base_ref }}...HEAD > pr.diff

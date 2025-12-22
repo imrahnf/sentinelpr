@@ -18,6 +18,8 @@ from src.git.diff_parser import DiffParser
 from src.orchestrator.mapper import Mapper
 from src.orchestrator.retriever import ContextRetriever
 from src.ai.auditor import Auditor
+from src.github.commenter import PRCommenter
+from src.validator.schema_guard import SchemaGuard
 
 def run_indexer():
     print("---|| SentinelPR Indexer Started ||---")
@@ -96,9 +98,8 @@ def run_indexer():
             continue # Move onto the next file
     print("---|| SentinelPR Indexer Complete ||---")
 
-def run_auditor(diff_path: str):
+def run_auditor(diff_path: str, repo: str = None, pr: int = None, token: str = None):
     print("---|| SentinelPR Auditor Started ||---")
-    
     try:
         # Read the Diff
         with open(diff_path, 'r') as f:
@@ -135,12 +136,21 @@ def run_auditor(diff_path: str):
             reviews = auditor.analyze(diff_text, sym, context)
             all_reviews.extend(reviews)
 
-        # Output Results
-        if all_reviews:
-            print("\nDETECTED ISSUES:")
-            print(json.dumps(all_reviews, indent=2))
+        # --- NEW: VALIDATION & POSTING ---
+        # 1. Validate
+        changed_files = {h.file_path for h in hunks}
+        guard = SchemaGuard(changed_files, {}) # Empty symbol map is fine for now
+        valid_reviews = guard.validate_reviews(all_reviews)
+
+        # 2. Post or Print
+        if token and repo and pr:
+            print(f"🚀 Posting {len(valid_reviews)} reviews to {repo} PR #{pr}...")
+            commenter = PRCommenter(repo, pr, token)
+            commenter.post_comments(valid_reviews)
         else:
-            print("No issues found.")
+            print("No issues found." if not valid_reviews else "\nDETECTED ISSUES:")
+            if valid_reviews:
+                print(json.dumps(valid_reviews, indent=2))
 
     except Exception as e:
         print(f"Audit Failure: {e}")
@@ -157,7 +167,7 @@ def main():
     args = parser.parse_args()
     
     if args.diff:
-        run_auditor(args.diff)
+        run_auditor(args.diff, args.repo, args.pr, args.token)
     else:
         run_indexer()
 

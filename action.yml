@@ -24,8 +24,11 @@ runs:
       run: |
         export PYTHONPATH=${{ github.action_path }}
         # We must create the pr.diff file before this step runs
-        python ${{ github.action_path }}/main.py \
-          --diff pr.diff 
+        python ${{ github.action_path }}/src/main.py \
+          --diff pr.diff \
+          --repo ${{ github.repository }} \
+          --pr ${{ github.event.pull_request.number }} \
+          --token ${{ inputs.github_token }}
       env:
         GEMINI_API_KEY: ${{ inputs.gemini_api_key }}
         GITHUB_TOKEN: ${{ inputs.github_token }}

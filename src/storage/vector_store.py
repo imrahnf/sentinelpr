@@ -1,7 +1,9 @@
-import chromadb
-from chromadb.config import Settings
 import os
+import chromadb
+from typing import List
 
+from chromadb.config import Settings
+from src.models.symbol import Symbol
 
 class VectorStore:
     def __init__(self, persist_dir: str = ".sentinel/db"):
@@ -14,6 +16,17 @@ class VectorStore:
             embeddings=vectors,
             metadatas=metadata
         )
+
+    def get_symbols_for_file(self, file_path: str):
+        result = self.collection.get(
+            where={"file_path":file_path}
+        )
+        symbols = []
+        if result["ids"] and result["metadatas"]:
+            for id, meta in zip(result["ids"], result["metadatas"]):
+                meta["id"] = id
+                symbols.append(meta)
+        return symbols
 
     def delete(self, file_path: str):
         self.collection.delete(

@@ -136,13 +136,11 @@ def run_auditor(diff_path: str, repo: str = None, pr: int = None, token: str = N
             reviews = auditor.analyze(diff_text, sym, context)
             all_reviews.extend(reviews)
 
-        # --- NEW: VALIDATION & POSTING ---
-        # 1. Validate
         changed_files = {h.file_path for h in hunks}
         guard = SchemaGuard(changed_files, {}) # Empty symbol map is fine for now
         valid_reviews = guard.validate_reviews(all_reviews)
 
-        # 2. Post or Print
+        # Post or Print
         if token and repo and pr:
             print(f"🚀 Posting {len(valid_reviews)} reviews to {repo} PR #{pr}...")
             commenter = PRCommenter(repo, pr, token)

@@ -15,6 +15,11 @@ def process_user_data(user_id, age):
     else:
         print(f"User {user_id} is a minor.")
 
+def connect_to_database():
+    # Bug 4: Hardcoded sensitive information (Security Risk)
+    db_password = "password123" 
+    print(f"Connecting with {db_password}...")
+
 if __name__ == "__main__":
     data = [10, 20, 30]
     print(f"Average: {calculate_average(data)}")

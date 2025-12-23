@@ -1,6 +1,6 @@
 # SentinelPR: Semantic RAG Code Auditor
 
-![SentinelPR Banner](https://img.shields.io/badge/Status-Production%20Ready-success?style=for-the-badge) ![Tree-sitter](https://img.shields.io/badge/Parser-Tree--sitter-green?style=for-the-badge) ![ChromaDB](https://img.shields.io/badge/Vector%20DB-ChromaDB-orange?style=for-the-badge) ![Python](https://img.shields.io/badge/Python-3.11%2B-blue?style=for-the-badge&logo=python) ![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
+![Tree-sitter](https://img.shields.io/badge/Parser-Tree--sitter-green?style=for-the-badge) ![ChromaDB](https://img.shields.io/badge/Vector%20DB-ChromaDB-orange?style=for-the-badge) ![Python](https://img.shields.io/badge/Python-3.11%2B-blue?style=for-the-badge&logo=python) ![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
 
 **SentinelPR** is a deterministic, context-aware code review agent designed for high-velocity teams. Unlike standard LLM reviewers that operate on isolated Git diffs, SentinelPR leverages a **Retrieval-Augmented Generation (RAG)** architecture combined with **Concrete Syntax Tree (CST)** parsing to provide reviews grounded in project wide context.
 

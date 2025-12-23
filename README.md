@@ -1,67 +1,92 @@
-# SentinelPR: Context-Aware AI Code Auditor
+# SentinelPR: Semantic RAG Code Auditor
 
-![SentinelPR Banner](https://img.shields.io/badge/Status-Production%20Ready-success?style=for-the-badge) ![Tree-sitter](https://img.shields.io/badge/Parser-Tree--sitter-green?style=for-the-badge) ![ChromaDB](https://img.shields.io/badge/Vector%20DB-ChromaDB-orange?style=for-the-badge) ![Python](https://img.shields.io/badge/Python-3.11%2B-blue?style=for-the-badge&logo=python)
+![SentinelPR Banner](https://img.shields.io/badge/Status-Production%20Ready-success?style=for-the-badge) ![Tree-sitter](https://img.shields.io/badge/Parser-Tree--sitter-green?style=for-the-badge) ![ChromaDB](https://img.shields.io/badge/Vector%20DB-ChromaDB-orange?style=for-the-badge) ![Python](https://img.shields.io/badge/Python-3.11%2B-blue?style=for-the-badge&logo=python) ![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
 
-**SentinelPR** is a deterministic, context-aware code review agent designed for high-velocity engineering teams. Unlike standard LLM wrappers that hallucinate on raw diffs, SentinelPR leverages **Concrete Syntax Tree (CST) parsing** and **Retrieval-Augmented Generation (RAG)** to understand the *full semantic scope* of your changes.
+**SentinelPR** is a deterministic, context-aware code review agent designed for high-velocity teams. Unlike standard LLM reviewers that operate on isolated Git diffs, SentinelPR leverages a **Retrieval-Augmented Generation (RAG)** architecture combined with **Concrete Syntax Tree (CST)** parsing to provide reviews grounded in project wide context.
 
-It doesn't just read the lines that changed, but reads the functions you modified, retrieves similar patterns from your codebase, and validates every suggestion against the actual Git diff hunks.
+It functions not just as a linter, but as a semantic auditor, reading modified functions, retrieving similar architectural patterns from the codebase, and validating suggestions against the actual Git diff hunks to ensure zero hallucinations in feedback.
 
----
+## System Architecture
 
-## Why SentinelPR?
-
-Most AI reviewers are **Context-Blind**. They see a 5-line diff and guess the intent. **SentinelPR is Context-Aware.**
-
-| Feature | Standard AI Reviewer | SentinelPR |
-| :--- | :--- | :--- |
-| **Parsing Engine** | Regex / Text Splitting | **Tree-sitter CST** (Compiler-Grade) |
-| **Context Window** | The Diff Only | **Full Symbol Scope + RAG Memory** |
-| **Hallucination Control** | None (Probabilistic) | **Schema Guard** (Deterministic Validation) |
-| **State Management** | Stateless | **Incremental Vector Indexing** |
-
----
-
-## How It Works
-
-SentinelPR operates as a **Fail-Open** CI/CD pipeline component.
+The pipeline operates as a directed acyclic graph (DAG) of data transformations.
 
 ```mermaid
-graph LR
-    subgraph Input
-        A[PR Event] --> B[Git Diff]
+graph TD
+    subgraph "Ingestion Layer"
+        A[PR Event] -->|Git Diff| B(Diff Parser)
+        A -->|Checkout| C(File System)
+        C -->|Source Code| D{Hash Check}
+        D -->|Changed| E[Tree-sitter Parser]
+        D -->|Unchanged| F[Skip]
     end
 
-    subgraph RAG_Engine
-        B --> C[Indexer]
-        C --> D[Tree-sitter AST]
-        D --> E[(ChromaDB)]
+    subgraph "Vectorization Layer"
+        E -->|AST Nodes| G[Symbol Extractor]
+        G -->|Embeddings| H[(ChromaDB Local)]
     end
 
-    subgraph Audit_Logic
-        E --> F[Context Retrieval]
-        F --> G[Gemini 1.5]
+    subgraph "Audit Engine"
+        B -->|Hunks| I[Orchestrator]
+        H -->|Semantic Context| I
+        I -->|Prompt Assembly| J[Gemini 1.5 Flash]
     end
 
-    subgraph Delivery
-        G --> H[Schema Guard]
-        H --> I[PR Comments]
+    subgraph "Validation Layer"
+        J -->|Raw Suggestions| K[Schema Guard]
+        K -->|Valid Hunk Mapping| L[GitHub API]
     end
-
-    style E fill:#f96,stroke:#333
-    style G fill:#4285F4,color:#fff
 ```
 
-1.  **Deterministic Parsing:** Uses `tree-sitter` to parse Python/Java code into a Concrete Syntax Tree, extracting top-level functions and classes.
-2.  **Semantic Indexing:** Embeds code symbols into a local **ChromaDB** vector store.
-3.  **Context Retrieval:** When a PR is opened, it maps the Git Diff hunks to specific symbols and retrieves relevant "neighboring" code patterns.
-4.  **AI Analysis:** Sends the Diff + Symbol Context + RAG Context to **Google Gemini**.
-5.  **Schema Guard:** A strict validation layer filters out any AI suggestion that references lines outside the actual Git hunks, ensuring zero noise.
+## System Design Decisions
 
----
+We prioritized deterministic behavior and state persistence over simple probabilistic generation.
+
+| Decision | Traditional Approach | SentinelPR Approach | Justification |
+| :--- | :--- | :--- | :--- |
+| **Parsing Strategy** | Regex / Text Splitting | **Tree-sitter (CST)** | Regex is fragile. CST ensures we extract full function scopes and understand language semantics. |
+| **State Management** | Stateless / External DB | **Local ChromaDB + Cache** | CI/CD is ephemeral. We persist the vector index via `@actions/cache` to enable "Serverless RAG". |
+| **Validation** | Probabilistic (LLM) | **Deterministic (Schema Guard)** | LLMs hallucinate. We strictly filter suggestions against Git diff hunks to ensure zero noise. |
+| **Context Scope** | Isolated Diff Hunks | **Semantic Neighbors** | Diffs lack context. We retrieve relevant code patterns to ground the review in reality. |
+
+### Stateful RAG in a Stateless Environment
+GitHub Actions is ephemeral. Maintaining a vector index usually requires an external service. SentinelPR implements a **Serverless RAG** architecture:
+1.  **Vector Store:** We use **ChromaDB** in persistent mode, writing the index to the local filesystem.
+2.  **Cache:** Leveraging `@actions/cache`, the vector store state (`.sentinel/db`) and file hashes (`.sentinel/hashes.json`) are persisted between runs.
+3.  **Incremental Indexing:** Only files with changed hashes are re-parsed and re-embedded, reducing runtime from minutes to seconds on subsequent runs.
+
+## Pipeline Stages
+
+### 1. Ingestion & Parsing
+The system parses the Git diff to identify changed files. Simultaneously, it scans the repository. A hash map of all files is compared against the previous run's state. Only modified files are passed to the Tree-sitter parser to extract top-level symbols (functions, classes).
+
+> ***Note**: SentinelPR implements a "fail fast" logic. If the diff parser detects changes only in non functional areas, such as comments, whitespace, or global vars, the pipeline terminates before the Vectorization stage to prevent unnecessary API overhead.*
+
+### 2. Vectorization
+Extracted symbols are embedded using a lightweight transformer model and stored in ChromaDB. This allows the system to query for "code that looks like this" or "functions that handle similar data structures."
+
+### 3. Retrieval & Context Injection
+When a diff is analyzed, SentinelPR queries the Vector Store for:
+*   **Definition Context:** The full body of the function being modified.
+*   **Reference Context:** Other parts of the codebase that call this function.
+*   **Pattern Context:** Similar implementations elsewhere in the project.
+
+### 4. Schema Guard (Deterministic Validation)
+LLMs hallucinate. They often suggest changes to lines that exist in the file but are not part of the PR's diff context. SentinelPR implements a strict **Schema Guard**:
+*   It maps every AI suggestion back to the specific line numbers in the Git Diff Hunk.
+*   If a suggestion falls outside the hunk boundaries, it is silently discarded.
+*   This guarantees that the bot only comments on lines the developer actually touched.
+
+| Feature | Probability-Based (LLM Only) | SentinelPR (Schema Guard) |
+| --- | --- | --- |
+| Suggestion Accuracy | May reference any line in the file. | Hard-mapped to PR diff hunks. |
+| Noise Level | High (hallucinated line numbers). | Zero (filtered via Git diff metadata). |
+| Reliability | "Best effort" generation. | Deterministic validation. |
 
 ## Usage
 
-Add this workflow to your repository at `.github/workflows/sentinel.yml`.
+SentinelPR is designed to run as a **composite GitHub Action**.
+
+Create a workflow file at `.github/workflows/sentinel.yml`:
 
 ```yaml
 name: SentinelPR Audit
@@ -109,21 +134,23 @@ jobs:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
 ```
 
----
+## Technical Constraints & Roadmap
 
-## Configuration
+### Current Bottleneck: Atomic API Requests
+Currently, the system treats every modified symbol as an **atomic unit of work**, triggering a separate API call to the LLM. While this ensures maximum context granularity, it can lead to rate limiting on **larger pull requests**.
 
-### Required Secrets
+### Roadmap
+1.  **Request Batching:** Aggregating multiple small symbol audits into a single LLM context window to reduce API calls.
+2.  **Async Processing:** Decoupling the analysis phase from the reporting phase to allow parallel processing of independent file audits.
+3.  **Cross-File Reference Graph:** Enhancing the vector store with a graph layer to understand import/export relationships explicitlyand not just semantically.
 
-| Secret | Description |
-| :--- | :--- |
-| `GITHUB_TOKEN` | Automatically provided by GitHub Actions. Required to post comments. |
-| `GEMINI_API_KEY` | Your Google Gemini API Key. Get one [here](https://aistudio.google.com/). |
+## Tech Stack
 
-### Supported Languages
-
-*   **Python** (`.py`)
-*   **Java** (`.java`)
+*   **Engine:** Python 3.11
+*   **LLM:** Google Gemini Flash
+*   **Parser:** Tree-sitter (Python/Java bindings)
+*   **Vector Store:** ChromaDB (Persistent Local)
+*   **CI/CD:** GitHub Actions
 
 ---
 

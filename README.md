@@ -21,7 +21,7 @@ graph LR
     end
 
     subgraph "Vectorization Layer"
-        E -->|AST Nodes| G[Symbol Extractor]
+        E -->|CST Nodes| G[Symbol Extractor]
         G -->|Embeddings| H[(ChromaDB Local)]
     end
 

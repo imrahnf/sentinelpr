@@ -11,7 +11,7 @@ It functions not just as a linter, but as a semantic auditor, reading modified f
 The pipeline operates as a directed acyclic graph (DAG) of data transformations.
 
 ```mermaid
-graph TD
+graph LR
     subgraph "Ingestion Layer"
         A[PR Event] -->|Git Diff| B(Diff Parser)
         A -->|Checkout| C(File System)

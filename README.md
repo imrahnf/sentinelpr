@@ -1,10 +1,17 @@
 # SentinelPR: Semantic RAG Code Auditor
 
-![Tree-sitter](https://img.shields.io/badge/Parser-Tree--sitter-green?style=for-the-badge) ![ChromaDB](https://img.shields.io/badge/Vector%20DB-ChromaDB-orange?style=for-the-badge) ![Python](https://img.shields.io/badge/Python-3.11%2B-blue?style=for-the-badge&logo=python) ![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
+![Tree-sitter](https://img.shields.io/badge/Parser-Tree--sitter-green?style=for-the-badge) ![ChromaDB](https://img.shields.io/badge/Vector%20DB-ChromaDB-orange?style=for-the-badge) ![Python](https://img.shields.io/badge/Python-3.11%2B-blue?style=for-the-badge&logo=python) ![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge) [![Live Demo — Open PR #6](https://img.shields.io/badge/Live%20Demo-PR%206-blue?style=for-the-badge)](https://github.com/imrahnf/sentinelpr/pull/6)
 
 **SentinelPR** is a deterministic, context-aware code review agent designed for high-velocity teams. Unlike standard LLM reviewers that operate on isolated Git diffs, SentinelPR leverages a **Retrieval-Augmented Generation (RAG)** architecture combined with **Concrete Syntax Tree (CST)** parsing to provide reviews grounded in project wide context.
 
 It functions not just as a linter, but as a semantic auditor, reading modified functions, retrieving similar architectural patterns from the codebase, and validating suggestions against the actual Git diff hunks to ensure zero hallucinations in feedback.
+
+---
+
+![Live demo: open PR used during a demo](docs/live-demo-pr6-1.png) ![Live demo: open PR used during a demo](docs/live-demo-pr6-2.png)
+## Demo / Transparency
+
+I demoed this project using an open pull request and intentionally left it visible for transparency. You can view the live, in-progress changes, comments, and CI at [PR #6](https://github.com/imrahnf/sentinelpr/pull/6). This PR is a snapshot of work-in-progress and may be updated, merged, or closed over time.
 
 ## System Architecture
 

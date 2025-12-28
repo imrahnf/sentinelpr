@@ -8,7 +8,8 @@ It functions not just as a linter, but as a semantic auditor, reading modified f
 
 ---
 
-![Live demo: open PR used during a demo](docs/live-demo-pr6-1.png) ![Live demo: open PR used during a demo](docs/live-demo-pr6-2.png)
+![Live demo: open PR used during a demo](docs/live-demo-pr6-1.png)
+![Live demo: open PR used during a demo](docs/live-demo-pr6-2.png)
 ## Demo / Transparency
 
 I demoed this project using an open pull request and intentionally left it visible for transparency. You can view the live, in-progress changes, comments, and CI at [PR #6](https://github.com/imrahnf/sentinelpr/pull/6). This PR is a snapshot of work-in-progress and may be updated, merged, or closed over time.

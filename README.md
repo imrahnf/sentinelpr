@@ -82,6 +82,39 @@ LLMs hallucinate. They often suggest changes to lines that exist in the file but
 | Noise Level | High (hallucinated line numbers). | Zero (filtered via Git diff metadata). |
 | Reliability | "Best effort" generation. | Deterministic validation. |
 
+## Example: Diff Hunk and How SentinelPR Handles It
+
+Given a small Python diff hunk like this:
+
+```diff
+diff --git a/src/utils.py b/src/utils.py
+index 1234567..abcdef0 100644
+--- a/src/utils.py
++++ b/src/utils.py
+@@ -10,7 +10,9 @@ def calculate_sum(a, b):
+  """
+  Calculate the sum of two numbers.
+  """
+-    return a + b
++    result = a + b
++    log_result(result)
++    return result
+```
+
+How SentinelPR processes that hunk (code-backed):
+
+- **Diff parsing (`src/git/diff_parser.py`)**: the repository diff is parsed into `DiffHunk` objects that capture `file_path`, `start_line`, and a list of `changed_lines` (the new-file line numbers for added/modified lines). The example hunk would produce a `DiffHunk` for `src/utils.py` containing the start line from the hunk header and the added line numbers for the three `+` lines.
+- **Change detection (`src/indexer/scanner.py`)**: the scanner computes file hashes (`src/indexer/hasher.py`) and only re-processes files whose hashes changed, minimizing unnecessary parsing and embedding.
+- **CST parsing (`src/parser/core.py`)**: for modified files, the source is parsed with Tree-sitter into a concrete syntax tree (CST). The parser supports Python and Java via language bindings.
+- **Symbol extraction (`src/parser/extractor.py` & `src/models/symbol.py`)**: the extractor walks the CST and extracts complete syntactic units (functions, classes). Each `Symbol` includes `start_line` and `end_line` and the full `content` (so a function body that spans multiple diff hunks is preserved intact).
+- **Embedding (`src/ai/embedder.py`)**: extracted symbols are embedded using the configured embedding model (the code uses Google GenAI embedding call `models/text-embedding-004`) to produce vectors for storage.
+- **Vector storage & retrieval (`src/storage/vector_store.py`)**: embeddings and metadata (including `file_path` and a `snippet` of code) are persisted to a local ChromaDB collection. These vectors are used to retrieve semantically similar symbols across the codebase for contextual grounding.
+- **Hunk-level validation**: because `DiffHunk.changed_lines` gives concrete line numbers and each `Symbol` carries line ranges, the system can map suggestions back to the exact lines in the PR hunk and discard any suggestions that fall outside the touched lines (the README's Schema Guard behavior is implemented by comparing hunk line numbers to symbol ranges).
+
+This example demonstrates how CST-backed symbol extraction prevents fragmentation: the entire `def calculate_sum(...)` symbol (docstring and body) is available for embedding and retrieval even though the diff only touched a few lines inside it. The README text above and these behaviors are implemented in the referenced modules.
+
+## Usage
+
 ## Usage
 
 SentinelPR is designed to run as a **composite GitHub Action**.
